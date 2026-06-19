@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useMemo, useEffect, type RefObject } from "react";
+import { Suspense, useRef, useMemo, useEffect, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Stars, MeshDistortMaterial, Icosahedron } from "@react-three/drei";
+import { Float, Stars, useTexture } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 
@@ -12,71 +12,94 @@ function det(n: number, spread: number) {
   return (x - Math.floor(x) - 0.5) * spread;
 }
 
-/** Sistema planeta: planeta distorsionado + cáscara wireframe, reactivo al scroll. */
-function PlanetSystem({ scroll }: { scroll: RefObject<number> }) {
+const R = 1.35; // radio de la Tierra
+
+/** Tierra con estilo cartoon: textura real + sombreado toon (cel), contorno y atmósfera. */
+function Earth({ scroll }: { scroll: RefObject<number> }) {
   const group = useRef<THREE.Group>(null);
+  const map = useTexture("/textures/earth.jpg");
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 4;
+
+  // Rampa de pocos pasos para el banding cel del MeshToonMaterial.
+  const gradientMap = useMemo(() => {
+    const steps = new Uint8Array([70, 130, 190, 245]);
+    const tex = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
 
   useFrame((_, delta) => {
     if (group.current) {
-      // Gira más rápido cuanto más bajas en la página.
       const boost = 1 + scroll.current * 3;
       group.current.rotation.y += delta * 0.12 * boost;
-      group.current.rotation.x += delta * 0.04;
     }
   });
 
   return (
-    <group ref={group}>
-      <Icosahedron args={[1.35, 12]}>
-        <MeshDistortMaterial
-          color="#7c5cff"
-          emissive="#4c2fb0"
-          emissiveIntensity={0.6}
-          roughness={0.2}
-          metalness={0.7}
-          distort={0.38}
-          speed={1.5}
+    <group ref={group} rotation={[0.35, 0, 0.18]}>
+      {/* Contorno cartoon (inverted hull) */}
+      <mesh scale={1.035}>
+        <sphereGeometry args={[R, 64, 64]} />
+        <meshBasicMaterial color="#070b22" side={THREE.BackSide} />
+      </mesh>
+
+      {/* Tierra con sombreado toon */}
+      <mesh>
+        <sphereGeometry args={[R, 64, 64]} />
+        <meshToonMaterial map={map} gradientMap={gradientMap} />
+      </mesh>
+
+      {/* Atmósfera con glow (additivo, lo realza el bloom) */}
+      <mesh scale={1.14}>
+        <sphereGeometry args={[R, 64, 64]} />
+        <meshBasicMaterial
+          color="#38bdf8"
+          side={THREE.BackSide}
+          transparent
+          opacity={0.14}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
-      </Icosahedron>
-      <Icosahedron args={[1.55, 2]}>
-        <meshBasicMaterial color="#22d3ee" wireframe transparent opacity={0.2} />
-      </Icosahedron>
+      </mesh>
     </group>
   );
 }
 
-/** Luna ámbar en órbita (acento solar que brilla con el bloom). */
+/** Luna gris en órbita alrededor de la Tierra. */
 function Moon() {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((state) => {
-    const t = state.clock.elapsedTime * 0.55;
-    ref.current?.position.set(Math.cos(t) * 2.7, Math.sin(t) * 0.7, Math.sin(t) * 2.7);
+    const t = state.clock.elapsedTime * 0.5;
+    ref.current?.position.set(Math.cos(t) * 2.8, Math.sin(t) * 0.6, Math.sin(t) * 2.8);
   });
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[0.16, 32, 32]} />
-      <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={2.2} toneMapped={false} />
+      <sphereGeometry args={[0.22, 32, 32]} />
+      <meshStandardMaterial color="#cbd2e0" emissive="#6b7280" emissiveIntensity={0.4} roughness={0.9} />
     </mesh>
   );
 }
 
-/** Anillo de asteroides (puntos) alrededor del planeta. */
-function AsteroidRing({ count = 600 }: { count?: number }) {
+/** Anillo de polvo/asteroides estilizado (licencia artística cartoon). */
+function DebrisRing({ count = 500 }: { count?: number }) {
   const ref = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2;
-      const r = 2.3 + det(i, 0.5);
+      const r = 2.3 + det(i, 0.45);
       arr[i * 3] = Math.cos(a) * r;
-      arr[i * 3 + 1] = det(i + 99, 0.18);
+      arr[i * 3 + 1] = det(i + 99, 0.15);
       arr[i * 3 + 2] = Math.sin(a) * r;
     }
     return arr;
   }, [count]);
 
   useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.y += delta * 0.06;
+    if (ref.current) ref.current.rotation.y += delta * 0.05;
   });
 
   return (
@@ -84,7 +107,7 @@ function AsteroidRing({ count = 600 }: { count?: number }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.035} color="#22d3ee" transparent opacity={0.85} sizeAttenuation toneMapped={false} />
+      <pointsMaterial size={0.03} color="#22d3ee" transparent opacity={0.7} sizeAttenuation toneMapped={false} />
     </points>
   );
 }
@@ -152,15 +175,17 @@ export default function CosmosScene() {
       <color attach="background" args={["#060814"]} />
       <fog attach="fog" args={["#060814", 7, 18]} />
 
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[3, 3, 2]} intensity={1.3} color="#22d3ee" />
-      <pointLight position={[-4, -2, -2]} intensity={2.4} color="#7c5cff" />
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[4, 2, 3]} intensity={1.6} color="#fff7e6" />
+      <pointLight position={[-4, -2, -2]} intensity={2} color="#7c5cff" />
 
-      <Float speed={1.4} rotationIntensity={0.5} floatIntensity={0.7}>
-        <PlanetSystem scroll={scroll} />
-        <AsteroidRing />
-        <Moon />
-      </Float>
+      <Suspense fallback={null}>
+        <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.6}>
+          <Earth scroll={scroll} />
+          <DebrisRing />
+          <Moon />
+        </Float>
+      </Suspense>
 
       <Dust />
       <Stars radius={60} depth={40} count={2800} factor={4} saturation={0} fade speed={0.6} />
@@ -168,8 +193,8 @@ export default function CosmosScene() {
       <CameraRig scroll={scroll} />
 
       <EffectComposer>
-        <Bloom intensity={0.9} luminanceThreshold={0.25} luminanceSmoothing={0.9} mipmapBlur />
-        <Vignette offset={0.25} darkness={0.65} />
+        <Bloom intensity={0.7} luminanceThreshold={0.3} luminanceSmoothing={0.9} mipmapBlur />
+        <Vignette offset={0.25} darkness={0.6} />
       </EffectComposer>
     </Canvas>
   );
