@@ -36,16 +36,15 @@ export const skills: { group: string; items: string[] }[] = [
 ];
 
 /**
- * Street View de San Mamés (aterrizaje tras el viaje por el globo).
- * Pega aquí la URL `src` del iframe de Google Maps:
- *   Google Maps → San Mamés → Street View → Compartir → "Insertar un mapa"
- *   → copia el <iframe> y pon aquí SOLO el valor de src="...".
- * Déjalo en "" para ocultar la sección de aterrizaje.
+ * Aterrizaje en Bilbao: foto panorámica a pantalla completa tras el viaje por el globo.
+ * Cambia `image` por otra panorámica si quieres (ponla en public/images/).
  */
-export const streetView = {
-  embedUrl:
-    "https://www.google.com/maps/embed?pb=!4v1781872584722!6m8!1m7!1sCAoSF0NJSE0wb2dLRUlDQWdJRHE4NU9EX0FF!2m2!1d43.26370859670102!2d-2.949372826482818!3f34.656026828395284!4f0.9528737826030351!5f0.7820865974627469",
-  caption: "San Mamés · Bilbao",
+export const bilbao = {
+  caption: "Bilbao",
+  image: "/images/bilbao.jpg",
+  alt: "Panorámica de Bilbao: el Museo Guggenheim y la ría del Nervión",
+  creditText: "Foto: Tiia Monto · CC BY-SA 3.0",
+  creditUrl: "https://commons.wikimedia.org/wiki/File:Bilbao_panorama_2.jpg",
 } as const;
 
 /** Cifras destacadas (contador animado). Ajusta los valores a tu realidad. */
