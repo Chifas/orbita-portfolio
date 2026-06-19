@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useSyncExternalStore } from "react";
 
 /** Carga diferida y solo en cliente de la escena WebGL. */
 const CosmosScene = dynamic(() => import("./CosmosScene"), {
@@ -8,7 +9,7 @@ const CosmosScene = dynamic(() => import("./CosmosScene"), {
   loading: () => <SceneFallback />,
 });
 
-/** Fondo de respaldo (sin WebGL / mientras carga): degradado cósmico estático. */
+/** Fondo de respaldo (sin WebGL / reduced-motion / mientras carga): degradado cósmico. */
 function SceneFallback() {
   return (
     <div
@@ -24,6 +25,22 @@ function SceneFallback() {
   );
 }
 
+/** Suscripción a prefers-reduced-motion sin setState en efectos (SSR-safe). */
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+}
+
 export function Scene3D() {
-  return <CosmosScene />;
+  // Si el usuario prefiere menos movimiento, ni cargamos Three.js: fondo estático
+  // (mejor rendimiento y accesibilidad).
+  const reduce = usePrefersReducedMotion();
+  return reduce ? <SceneFallback /> : <CosmosScene />;
 }

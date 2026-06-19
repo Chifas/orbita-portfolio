@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useRef, useMemo, useEffect, type RefObject } from "react";
+import { Suspense, useRef, useMemo, useState, useEffect, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Stars, useTexture } from "@react-three/drei";
+import { Float, Stars, useTexture, PerformanceMonitor } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 
@@ -14,14 +14,36 @@ function det(n: number, spread: number) {
 
 const R = 1.35; // radio de la Tierra
 
-/** Tierra con estilo cartoon: textura real + sombreado toon (cel), contorno y atmósfera. */
-function Earth({ scroll }: { scroll: RefObject<number> }) {
+type Quality = "low" | "high";
+type Mouse = { x: number; y: number };
+
+/** Decide la calidad una sola vez según el dispositivo (solo en cliente). */
+function detectQuality(): Quality {
+  if (typeof window === "undefined") return "high";
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  const small = window.innerWidth < 768;
+  const cores = navigator.hardwareConcurrency ?? 8;
+  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+  if (coarse || small || cores <= 4 || mem <= 4) return "low";
+  return "high";
+}
+
+/** Tierra cartoon (toon) que reacciona a la posición del cursor. */
+function Earth({
+  scroll,
+  mouse,
+  segments,
+}: {
+  scroll: RefObject<number>;
+  mouse: RefObject<Mouse>;
+  segments: number;
+}) {
   const group = useRef<THREE.Group>(null);
+
   const map = useTexture("/textures/earth.jpg");
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 4;
 
-  // Rampa de pocos pasos para el banding cel del MeshToonMaterial.
   const gradientMap = useMemo(() => {
     const steps = new Uint8Array([70, 130, 190, 245]);
     const tex = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
@@ -32,29 +54,33 @@ function Earth({ scroll }: { scroll: RefObject<number> }) {
   }, []);
 
   useFrame((_, delta) => {
-    if (group.current) {
-      const boost = 1 + scroll.current * 3;
-      group.current.rotation.y += delta * 0.12 * boost;
-    }
+    const g = group.current;
+    if (!g) return;
+    // Rotación continua (más rápida al bajar) + leve inclinación hacia el cursor.
+    g.rotation.y += 0.12 * (1 + scroll.current * 3) * delta;
+    const targetTiltX = 0.35 + mouse.current.y * 0.25;
+    const targetTiltZ = 0.18 + mouse.current.x * 0.2;
+    g.rotation.x += (targetTiltX - g.rotation.x) * 0.05;
+    g.rotation.z += (targetTiltZ - g.rotation.z) * 0.05;
   });
 
   return (
     <group ref={group} rotation={[0.35, 0, 0.18]}>
       {/* Contorno cartoon (inverted hull) */}
       <mesh scale={1.035}>
-        <sphereGeometry args={[R, 64, 64]} />
+        <sphereGeometry args={[R, segments, segments]} />
         <meshBasicMaterial color="#070b22" side={THREE.BackSide} />
       </mesh>
 
       {/* Tierra con sombreado toon */}
       <mesh>
-        <sphereGeometry args={[R, 64, 64]} />
+        <sphereGeometry args={[R, segments, segments]} />
         <meshToonMaterial map={map} gradientMap={gradientMap} />
       </mesh>
 
-      {/* Atmósfera con glow (additivo, lo realza el bloom) */}
+      {/* Atmósfera con glow */}
       <mesh scale={1.14}>
-        <sphereGeometry args={[R, 64, 64]} />
+        <sphereGeometry args={[R, segments, segments]} />
         <meshBasicMaterial
           color="#38bdf8"
           side={THREE.BackSide}
@@ -68,7 +94,6 @@ function Earth({ scroll }: { scroll: RefObject<number> }) {
   );
 }
 
-/** Luna gris en órbita alrededor de la Tierra. */
 function Moon() {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((state) => {
@@ -77,14 +102,13 @@ function Moon() {
   });
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[0.22, 32, 32]} />
+      <sphereGeometry args={[0.22, 24, 24]} />
       <meshStandardMaterial color="#cbd2e0" emissive="#6b7280" emissiveIntensity={0.4} roughness={0.9} />
     </mesh>
   );
 }
 
-/** Anillo de polvo/asteroides estilizado (licencia artística cartoon). */
-function DebrisRing({ count = 500 }: { count?: number }) {
+function DebrisRing({ count }: { count: number }) {
   const ref = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
@@ -112,8 +136,7 @@ function DebrisRing({ count = 500 }: { count?: number }) {
   );
 }
 
-/** Polvo cósmico de fondo. */
-function Dust({ count = 350 }: { count?: number }) {
+function Dust({ count }: { count: number }) {
   const points = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
@@ -139,38 +162,63 @@ function Dust({ count = 350 }: { count?: number }) {
   );
 }
 
-/** Parallax de cámara con el ratón + leve alejamiento al hacer scroll. */
-function CameraRig({ scroll }: { scroll: RefObject<number> }) {
-  const { camera, pointer } = useThree();
+/** Parallax de cámara siguiendo el ratón global + leve alejamiento al hacer scroll. */
+function CameraRig({ scroll, mouse }: { scroll: RefObject<number>; mouse: RefObject<Mouse> }) {
+  const { camera } = useThree();
   useFrame(() => {
     const targetZ = 5 + scroll.current * 1.5;
-    camera.position.x += (pointer.x * 0.8 - camera.position.x) * 0.04;
-    camera.position.y += (pointer.y * 0.5 - camera.position.y) * 0.04;
+    camera.position.x += (mouse.current.x * 0.8 - camera.position.x) * 0.04;
+    camera.position.y += (mouse.current.y * 0.5 - camera.position.y) * 0.04;
     camera.position.z += (targetZ - camera.position.z) * 0.04;
     camera.lookAt(0, 0, 0);
   });
   return null;
 }
 
+/** Pausa el bucle de render cuando la pestaña no está visible (ahorra CPU/GPU). */
+function VisibilityPause() {
+  const setFrameloop = useThree((s) => s.setFrameloop);
+  useEffect(() => {
+    const onVis = () => setFrameloop(document.hidden ? "never" : "always");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [setFrameloop]);
+  return null;
+}
+
 export default function CosmosScene() {
   const scroll = useRef(0);
+  const mouse = useRef<Mouse>({ x: 0, y: 0 });
+  const [quality] = useState<Quality>(detectQuality);
+  const high = quality === "high";
+
+  const [dpr, setDpr] = useState(high ? 1.5 : 1);
+  const [bloom, setBloom] = useState(high);
 
   useEffect(() => {
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       scroll.current = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
     };
+    const onMouse = (e: MouseEvent) => {
+      mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("mousemove", onMouse, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMouse);
+    };
   }, []);
 
   return (
     <Canvas
       className="!fixed inset-0 -z-10"
       camera={{ position: [0, 0, 5], fov: 45 }}
-      dpr={[1, 1.5]}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      dpr={dpr}
+      gl={{ antialias: high, alpha: true, stencil: false, powerPreference: "high-performance" }}
     >
       <color attach="background" args={["#060814"]} />
       <fog attach="fog" args={["#060814", 7, 18]} />
@@ -181,21 +229,36 @@ export default function CosmosScene() {
 
       <Suspense fallback={null}>
         <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.6}>
-          <Earth scroll={scroll} />
-          <DebrisRing />
+          <Earth scroll={scroll} mouse={mouse} segments={high ? 48 : 32} />
+          <DebrisRing count={high ? 320 : 160} />
           <Moon />
         </Float>
       </Suspense>
 
-      <Dust />
-      <Stars radius={60} depth={40} count={2800} factor={4} saturation={0} fade speed={0.6} />
+      <Dust count={high ? 250 : 120} />
+      <Stars radius={60} depth={40} count={high ? 1800 : 700} factor={4} saturation={0} fade speed={0.5} />
 
-      <CameraRig scroll={scroll} />
+      <CameraRig scroll={scroll} mouse={mouse} />
+      <VisibilityPause />
 
-      <EffectComposer>
-        <Bloom intensity={0.7} luminanceThreshold={0.3} luminanceSmoothing={0.9} mipmapBlur />
-        <Vignette offset={0.25} darkness={0.6} />
-      </EffectComposer>
+      {high && (
+        <PerformanceMonitor
+          flipflops={3}
+          onChange={({ factor }) => setDpr(Math.min(1.5, 0.85 + factor * 0.65))}
+          onDecline={() => setBloom(false)}
+          onFallback={() => {
+            setDpr(1);
+            setBloom(false);
+          }}
+        />
+      )}
+
+      {bloom && (
+        <EffectComposer>
+          <Bloom intensity={0.7} luminanceThreshold={0.3} luminanceSmoothing={0.9} mipmapBlur />
+          <Vignette offset={0.25} darkness={0.6} />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }
