@@ -3,6 +3,7 @@ import { ShootingStars } from "@/components/ShootingStars";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/sections/Hero";
+import { Arrival } from "@/components/sections/Arrival";
 import { About } from "@/components/sections/About";
 import { Stats } from "@/components/sections/Stats";
 import { Stack } from "@/components/sections/Stack";
@@ -23,6 +24,7 @@ export default function Home() {
 
       <main>
         <Hero />
+        <Arrival />
         <About />
         <Stats />
         <Stack />

@@ -215,40 +215,6 @@ function OrbitingBodies({ approach, count }: { approach: RefObject<number>; coun
   );
 }
 
-/**
- * Panorama 360° (esfera invertida centrada en la cámara). Entra en crossfade al
- * acercarnos a Bilbao y se puede mirar alrededor con el ratón.
- * Reemplaza public/textures/sanmames-360.jpg por una panorámica real de San Mamés.
- */
-function Panorama({ approach, mouse }: { approach: RefObject<number>; mouse: RefObject<Mouse> }) {
-  const mesh = useRef<THREE.Mesh>(null);
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
-  const { camera } = useThree();
-  const map = useTexture("/textures/sanmames-360.jpg");
-  map.colorSpace = THREE.SRGBColorSpace;
-
-  useFrame((_, delta) => {
-    const m = mesh.current;
-    if (!m) return;
-    const a = approach.current;
-    const op = clamp01((a - 0.6) / 0.4); // fundido de entrada 0.6 → 1
-    m.visible = op > 0.001;
-    if (matRef.current) matRef.current.opacity = op;
-    // Centrada en la cámara → siempre estás dentro del 360.
-    m.position.copy(camera.position);
-    // Giro lento automático + mirar alrededor con el ratón.
-    m.rotation.y += delta * 0.02 + (mouse.current.x * 0.0015);
-    m.rotation.x += (mouse.current.y * 0.15 - m.rotation.x) * 0.05;
-  });
-
-  return (
-    <mesh ref={mesh} scale={[-1, 1, 1]} renderOrder={2}>
-      <sphereGeometry args={[12, 48, 32]} />
-      <meshBasicMaterial ref={matRef} map={map} transparent opacity={0} depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
-}
-
 function Dust({ count }: { count: number }) {
   const points = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
@@ -341,7 +307,6 @@ export default function CosmosScene() {
       <Suspense fallback={null}>
         <Earth approach={approach} segments={high ? 48 : 32} />
         <OrbitingBodies approach={approach} count={high ? 320 : 160} />
-        <Panorama approach={approach} mouse={mouse} />
       </Suspense>
 
       <Dust count={high ? 250 : 120} />

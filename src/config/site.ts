@@ -35,6 +35,18 @@ export const skills: { group: string; items: string[] }[] = [
   { group: "Herramientas", items: ["Git", "Docker", "REST APIs", "Figma"] },
 ];
 
+/**
+ * Street View de San Mamés (aterrizaje tras el viaje por el globo).
+ * Pega aquí la URL `src` del iframe de Google Maps:
+ *   Google Maps → San Mamés → Street View → Compartir → "Insertar un mapa"
+ *   → copia el <iframe> y pon aquí SOLO el valor de src="...".
+ * Déjalo en "" para ocultar la sección de aterrizaje.
+ */
+export const streetView = {
+  embedUrl: "", // 👈 PEGA AQUÍ la URL src del iframe de Street View
+  caption: "San Mamés · Bilbao",
+} as const;
+
 /** Cifras destacadas (contador animado). Ajusta los valores a tu realidad. */
 export const stats: { value: number; suffix?: string; label: string }[] = [
   { value: 3, suffix: "+", label: "Años de experiencia" },
