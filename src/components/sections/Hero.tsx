@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { Magnetic } from "../Magnetic";
 import { site } from "@/config/site";
 
 export function Hero() {
@@ -56,18 +57,22 @@ export function Hero() {
       </p>
 
       <div data-hero="cta" className="relative z-10 mt-10 flex flex-wrap items-center justify-center gap-4">
-        <a
-          href="#proyectos"
-          className="rounded-full bg-gradient-to-r from-nebula to-plasma px-7 py-3.5 text-sm font-semibold text-void transition-transform hover:scale-[1.04]"
-        >
-          Ver proyectos
-        </a>
-        <a
-          href="#contacto"
-          className="rounded-full border border-white/15 px-7 py-3.5 text-sm font-semibold text-star transition-colors hover:border-plasma/60 hover:bg-white/5"
-        >
-          Contacto
-        </a>
+        <Magnetic>
+          <a
+            href="#proyectos"
+            className="inline-block rounded-full bg-gradient-to-r from-nebula to-plasma px-7 py-3.5 text-sm font-semibold text-void"
+          >
+            Ver proyectos
+          </a>
+        </Magnetic>
+        <Magnetic>
+          <a
+            href="#contacto"
+            className="inline-block rounded-full border border-white/15 px-7 py-3.5 text-sm font-semibold text-star transition-colors hover:border-plasma/60 hover:bg-white/5"
+          >
+            Contacto
+          </a>
+        </Magnetic>
       </div>
 
       <a

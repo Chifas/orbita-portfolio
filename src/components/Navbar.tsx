@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { Magnetic } from "./Magnetic";
 import { navLinks } from "@/config/site";
 
 export function Navbar() {
@@ -40,12 +41,14 @@ export function Navbar() {
           ))}
         </ul>
 
-        <a
-          href="#contacto"
-          className="hidden rounded-full bg-gradient-to-r from-nebula to-plasma px-4 py-2 text-sm font-semibold text-void transition-transform hover:scale-[1.03] md:inline-block"
-        >
-          Hablemos
-        </a>
+        <Magnetic className="hidden md:inline-block">
+          <a
+            href="#contacto"
+            className="inline-block rounded-full bg-gradient-to-r from-nebula to-plasma px-4 py-2 text-sm font-semibold text-void"
+          >
+            Hablemos
+          </a>
+        </Magnetic>
 
         {/* Botón móvil */}
         <button

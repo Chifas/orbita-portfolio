@@ -103,6 +103,93 @@ h1, h2, h3, h4 {
   border-radius: 99px;
 }
 
+/* Marquee infinito */
+.marquee-track {
+  animation: marquee 28s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Cursor personalizado (anillo con glow) */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  border: 1px solid var(--plasma);
+  background: color-mix(in srgb, var(--plasma) 12%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--plasma) 50%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  transition: width 0.25s ease, height 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+.custom-cursor.cursor-grow {
+  width: 54px;
+  height: 54px;
+  border-color: var(--nebula);
+  background: color-mix(in srgb, var(--nebula) 16%, transparent);
+}
+@media (pointer: coarse) {
+  .custom-cursor {
+    display: none;
+  }
+}
+
+/* Estrellas fugaces (overlay decorativo) */
+.shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--star);
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--plasma) 80%, white);
+  opacity: 0;
+  animation-name: shoot;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+.shooting-star::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 90px;
+  height: 1px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, var(--plasma));
+}
+
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(18deg) scale(0.6);
+  }
+  10% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(420px, 140px) rotate(18deg) scale(1);
+  }
+}
+
 /* Respeta a quien prefiere menos movimiento */
 @media (prefers-reduced-motion: reduce) {
   *,

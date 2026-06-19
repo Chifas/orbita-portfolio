@@ -35,6 +35,14 @@ export const skills: { group: string; items: string[] }[] = [
   { group: "Herramientas", items: ["Git", "Docker", "REST APIs", "Figma"] },
 ];
 
+/** Cifras destacadas (contador animado). Ajusta los valores a tu realidad. */
+export const stats: { value: number; suffix?: string; label: string }[] = [
+  { value: 3, suffix: "+", label: "Años de experiencia" },
+  { value: 10, suffix: "+", label: "Proyectos" },
+  { value: 6, label: "Lenguajes" },
+  { value: 4, label: "Bases de datos" },
+];
+
 export type Project = {
   title: string;
   description: string;

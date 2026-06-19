@@ -1,4 +1,5 @@
 import { Reveal } from "../Reveal";
+import { Magnetic } from "../Magnetic";
 import { site, socials } from "@/config/site";
 
 export function Contact() {
@@ -25,12 +26,14 @@ export function Contact() {
             simplemente para saludar.
           </p>
 
-          <a
-            href={`mailto:${site.email}`}
-            className="mt-9 inline-block rounded-full bg-gradient-to-r from-nebula to-plasma px-8 py-4 text-sm font-semibold text-void transition-transform hover:scale-[1.04]"
-          >
-            {site.email}
-          </a>
+          <Magnetic className="mt-9">
+            <a
+              href={`mailto:${site.email}`}
+              className="inline-block rounded-full bg-gradient-to-r from-nebula to-plasma px-8 py-4 text-sm font-semibold text-void"
+            >
+              {site.email}
+            </a>
+          </Magnetic>
 
           <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             {socials.map((social) => (

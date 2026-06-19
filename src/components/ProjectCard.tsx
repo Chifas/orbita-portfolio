@@ -15,8 +15,21 @@ export function ProjectCard({ project }: { project: Project }) {
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    el.style.setProperty("--mx", `${px}px`);
+    el.style.setProperty("--my", `${py}px`);
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Inclinación 3D según la posición del cursor dentro de la tarjeta.
+    const rx = (py / rect.height - 0.5) * -8;
+    const ry = (px / rect.width - 0.5) * 8;
+    el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+  }
+
+  function handleLeave() {
+    const el = ref.current;
+    if (el) el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg)";
   }
 
   const isExternal = project.href.startsWith("http");
@@ -26,9 +39,11 @@ export function ProjectCard({ project }: { project: Project }) {
       ref={ref}
       href={project.href}
       onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
-      className="group surface relative overflow-hidden rounded-2xl p-6 transition-colors hover:border-plasma/40"
+      style={{ transition: "transform 0.3s ease, border-color 0.3s ease", willChange: "transform" }}
+      className="group surface relative overflow-hidden rounded-2xl p-6 hover:border-plasma/40"
     >
       {/* Spotlight */}
       <span
