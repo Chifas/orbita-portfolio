@@ -91,16 +91,15 @@ h1, h2, h3, h4 {
   color: var(--star);
 }
 
-/* Scrollbar acorde a la marca */
+/* Barra de scroll oculta (el scroll sigue funcionando) */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge antiguo */
+}
 ::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--void);
-}
-::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--nebula) 50%, transparent);
-  border-radius: 99px;
+  width: 0;
+  height: 0;
+  display: none; /* Chrome/Safari/Edge */
 }
 
 /* Marquee infinito */
@@ -116,35 +115,6 @@ h1, h2, h3, h4 {
   }
   to {
     transform: translateX(-100%);
-  }
-}
-
-/* Cursor personalizado (anillo con glow) */
-.custom-cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 100;
-  width: 22px;
-  height: 22px;
-  border-radius: 99px;
-  border: 1px solid var(--plasma);
-  background: color-mix(in srgb, var(--plasma) 12%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--plasma) 50%, transparent);
-  pointer-events: none;
-  opacity: 0;
-  will-change: transform;
-  transition: width 0.25s ease, height 0.25s ease, background 0.25s ease, border-color 0.25s ease;
-}
-.custom-cursor.cursor-grow {
-  width: 54px;
-  height: 54px;
-  border-color: var(--nebula);
-  background: color-mix(in srgb, var(--nebula) 16%, transparent);
-}
-@media (pointer: coarse) {
-  .custom-cursor {
-    display: none;
   }
 }
 

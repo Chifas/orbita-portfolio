@@ -13,11 +13,24 @@ function det(n: number, spread: number) {
 }
 
 const R = 1.35; // radio de la Tierra
+// Bilbao, País Vasco
+const BILBAO_LAT = 43.26;
+const BILBAO_LON = -2.93;
 
 type Quality = "low" | "high";
 type Mouse = { x: number; y: number };
 
-/** Decide la calidad una sola vez según el dispositivo (solo en cliente). */
+/** lat/long → posición en una esfera con textura equirectangular estándar. */
+function latLonToVector3(lat: number, lon: number, radius: number) {
+  const phi = ((90 - lat) * Math.PI) / 180;
+  const theta = ((lon + 180) * Math.PI) / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta),
+  );
+}
+
 function detectQuality(): Quality {
   if (typeof window === "undefined") return "high";
   const coarse = window.matchMedia("(pointer: coarse)").matches;
@@ -28,18 +41,47 @@ function detectQuality(): Quality {
   return "high";
 }
 
-/** Tierra cartoon (toon) que reacciona a la posición del cursor. */
+/** Marcador luminoso de Bilbao sobre la superficie (hijo del grupo Tierra). */
+function BilbaoMarker({ approach }: { approach: RefObject<number> }) {
+  const ring = useRef<THREE.Mesh>(null);
+  const pos = useMemo(() => latLonToVector3(BILBAO_LAT, BILBAO_LON, R * 1.005), []);
+  const quat = useMemo(() => {
+    const q = new THREE.Quaternion();
+    q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pos.clone().normalize());
+    return q;
+  }, [pos]);
+
+  useFrame((state) => {
+    if (!ring.current) return;
+    const p = Math.sin(state.clock.elapsedTime * 3) * 0.5 + 0.5;
+    ring.current.scale.setScalar(1 + p * 1.4);
+    const mat = ring.current.material as THREE.MeshBasicMaterial;
+    mat.opacity = (1 - p) * 0.8 * Math.min(1, approach.current * 2);
+  });
+
+  return (
+    <group position={pos} quaternion={quat}>
+      <mesh>
+        <sphereGeometry args={[0.03, 16, 16]} />
+        <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={4} toneMapped={false} />
+      </mesh>
+      <mesh ref={ring} position={[0, 0, 0.002]}>
+        <ringGeometry args={[0.045, 0.065, 32]} />
+        <meshBasicMaterial color="#fbbf24" transparent side={THREE.DoubleSide} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Tierra cartoon (toon). Al hacer scroll se acerca y gira para mostrar Bilbao. */
 function Earth({
-  scroll,
-  mouse,
+  approach,
   segments,
 }: {
-  scroll: RefObject<number>;
-  mouse: RefObject<Mouse>;
+  approach: RefObject<number>;
   segments: number;
 }) {
   const group = useRef<THREE.Group>(null);
-
   const map = useTexture("/textures/earth.jpg");
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 4;
@@ -53,32 +95,36 @@ function Earth({
     return tex;
   }, []);
 
+  // Orientación que deja Bilbao mirando a la cámara (ligeramente desde arriba).
+  const targetQuat = useMemo(() => {
+    const dir = latLonToVector3(BILBAO_LAT, BILBAO_LON, 1);
+    const q = new THREE.Quaternion();
+    q.setFromUnitVectors(dir, new THREE.Vector3(0, 0.3, 1).normalize());
+    return q;
+  }, []);
+
   useFrame((_, delta) => {
     const g = group.current;
     if (!g) return;
-    // Rotación continua (más rápida al bajar) + leve inclinación hacia el cursor.
-    g.rotation.y += 0.12 * (1 + scroll.current * 3) * delta;
-    const targetTiltX = 0.35 + mouse.current.y * 0.25;
-    const targetTiltZ = 0.18 + mouse.current.x * 0.2;
-    g.rotation.x += (targetTiltX - g.rotation.x) * 0.05;
-    g.rotation.z += (targetTiltZ - g.rotation.z) * 0.05;
+    const a = approach.current;
+    if (a < 0.03) {
+      g.rotation.y += 0.12 * delta; // giro libre arriba del todo
+    } else {
+      g.quaternion.slerp(targetQuat, 0.06); // viaje suave a Bilbao
+    }
+    g.scale.setScalar(1 + a * 0.9); // se acerca/crece
   });
 
   return (
     <group ref={group} rotation={[0.35, 0, 0.18]}>
-      {/* Contorno cartoon (inverted hull) */}
       <mesh scale={1.035}>
         <sphereGeometry args={[R, segments, segments]} />
         <meshBasicMaterial color="#070b22" side={THREE.BackSide} />
       </mesh>
-
-      {/* Tierra con sombreado toon */}
       <mesh>
         <sphereGeometry args={[R, segments, segments]} />
         <meshToonMaterial map={map} gradientMap={gradientMap} />
       </mesh>
-
-      {/* Atmósfera con glow */}
       <mesh scale={1.14}>
         <sphereGeometry args={[R, segments, segments]} />
         <meshBasicMaterial
@@ -90,20 +136,27 @@ function Earth({
           depthWrite={false}
         />
       </mesh>
+      <BilbaoMarker approach={approach} />
     </group>
   );
 }
 
+/** Luna texturizada en órbita. */
 function Moon() {
   const ref = useRef<THREE.Mesh>(null);
+  const map = useTexture("/textures/moon.jpg");
+  map.colorSpace = THREE.SRGBColorSpace;
+
   useFrame((state) => {
     const t = state.clock.elapsedTime * 0.5;
     ref.current?.position.set(Math.cos(t) * 2.8, Math.sin(t) * 0.6, Math.sin(t) * 2.8);
+    if (ref.current) ref.current.rotation.y += 0.003;
   });
+
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[0.22, 24, 24]} />
-      <meshStandardMaterial color="#cbd2e0" emissive="#6b7280" emissiveIntensity={0.4} roughness={0.9} />
+      <sphereGeometry args={[0.28, 32, 32]} />
+      <meshStandardMaterial map={map} roughness={1} metalness={0} />
     </mesh>
   );
 }
@@ -136,6 +189,25 @@ function DebrisRing({ count }: { count: number }) {
   );
 }
 
+/** Cuerpos en órbita (Luna + anillo) que se desvanecen al acercarnos a Bilbao. */
+function OrbitingBodies({ approach, count }: { approach: RefObject<number>; count: number }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(() => {
+    if (!ref.current) return;
+    const a = approach.current;
+    ref.current.visible = a < 0.85;
+    ref.current.scale.setScalar(Math.max(0.001, 1 - a * 1.15));
+  });
+  return (
+    <group ref={ref}>
+      <Float speed={1.2} rotationIntensity={0.3} floatIntensity={0.5}>
+        <Moon />
+        <DebrisRing count={count} />
+      </Float>
+    </group>
+  );
+}
+
 function Dust({ count }: { count: number }) {
   const points = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
@@ -162,20 +234,21 @@ function Dust({ count }: { count: number }) {
   );
 }
 
-/** Parallax de cámara siguiendo el ratón global + leve alejamiento al hacer scroll. */
-function CameraRig({ scroll, mouse }: { scroll: RefObject<number>; mouse: RefObject<Mouse> }) {
+/** Cámara: se acerca con el scroll (zoom a Bilbao) + leve parallax con el ratón. */
+function CameraRig({ approach, mouse }: { approach: RefObject<number>; mouse: RefObject<Mouse> }) {
   const { camera } = useThree();
   useFrame(() => {
-    const targetZ = 5 + scroll.current * 1.5;
-    camera.position.x += (mouse.current.x * 0.8 - camera.position.x) * 0.04;
-    camera.position.y += (mouse.current.y * 0.5 - camera.position.y) * 0.04;
+    const a = approach.current;
+    const targetZ = 5 - a * 1.9;
+    const damp = 1 - a * 0.85; // menos parallax cuanto más cerca
+    camera.position.x += (mouse.current.x * 0.8 * damp - camera.position.x) * 0.04;
+    camera.position.y += (mouse.current.y * 0.5 * damp - camera.position.y) * 0.04;
     camera.position.z += (targetZ - camera.position.z) * 0.04;
     camera.lookAt(0, 0, 0);
   });
   return null;
 }
 
-/** Pausa el bucle de render cuando la pestaña no está visible (ahorra CPU/GPU). */
 function VisibilityPause() {
   const setFrameloop = useThree((s) => s.setFrameloop);
   useEffect(() => {
@@ -187,7 +260,7 @@ function VisibilityPause() {
 }
 
 export default function CosmosScene() {
-  const scroll = useRef(0);
+  const approach = useRef(0);
   const mouse = useRef<Mouse>({ x: 0, y: 0 });
   const [quality] = useState<Quality>(detectQuality);
   const high = quality === "high";
@@ -197,8 +270,8 @@ export default function CosmosScene() {
 
   useEffect(() => {
     const onScroll = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      scroll.current = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+      // Llega a "Bilbao" tras ~1.4 alturas de pantalla.
+      approach.current = Math.min(window.scrollY / (window.innerHeight * 1.4), 1);
     };
     const onMouse = (e: MouseEvent) => {
       mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -228,17 +301,14 @@ export default function CosmosScene() {
       <pointLight position={[-4, -2, -2]} intensity={2} color="#7c5cff" />
 
       <Suspense fallback={null}>
-        <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.6}>
-          <Earth scroll={scroll} mouse={mouse} segments={high ? 48 : 32} />
-          <DebrisRing count={high ? 320 : 160} />
-          <Moon />
-        </Float>
+        <Earth approach={approach} segments={high ? 48 : 32} />
+        <OrbitingBodies approach={approach} count={high ? 320 : 160} />
       </Suspense>
 
       <Dust count={high ? 250 : 120} />
       <Stars radius={60} depth={40} count={high ? 1800 : 700} factor={4} saturation={0} fade speed={0.5} />
 
-      <CameraRig scroll={scroll} mouse={mouse} />
+      <CameraRig approach={approach} mouse={mouse} />
       <VisibilityPause />
 
       {high && (

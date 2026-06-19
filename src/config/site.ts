@@ -15,7 +15,7 @@ export const site = {
   /** Dominio público (para SEO / Open Graph). Sin barra final. Cámbialo al desplegar. */
   url: "https://orbita-portfolio.vercel.app", // 👈 EDITA al desplegar (p. ej. tu dominio o URL de Vercel)
   /** Ubicación. */
-  location: "Bilbao, País Vasco",
+  location: "Bilbao, Bizkaia, España",
   /** Email de contacto. */
   email: "ekainberna58@gmail.com",
 } as const;

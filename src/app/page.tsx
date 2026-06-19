@@ -1,6 +1,5 @@
 import { Scene3D } from "@/components/three/Scene3D";
 import { ShootingStars } from "@/components/ShootingStars";
-import { CustomCursor } from "@/components/CustomCursor";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/sections/Hero";
@@ -19,7 +18,6 @@ export default function Home() {
       {/* Escena WebGL fija detrás de todo */}
       <Scene3D />
       <ShootingStars />
-      <CustomCursor />
 
       <Navbar />
 
