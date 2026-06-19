@@ -1,81 +1,85 @@
 /**
  * ───────────────────────────────────────────────────────────────────────────
  *  CONFIGURACIÓN DEL PORTFOLIO — edita SOLO este archivo para personalizarlo.
- *  Todos los valores marcados con  // 👈 EDITA  son placeholders. Cámbialos.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
 export const site = {
   /** Tu nombre completo — aparece en hero, nav y metadatos. */
-  name: "Tu Nombre", // 👈 EDITA
+  name: "Ekain Bernabé",
   /** Tu rol / titular profesional. */
-  role: "Desarrollador/a Creativo/a", // 👈 EDITA
+  role: "Desarrollador de Software",
   /** Frase corta de marca (tagline). */
-  tagline: "Construyo experiencias web que orbitan entre el diseño y el código.", // 👈 EDITA
-  /** Dominio público (para SEO / Open Graph). Sin barra final. */
-  url: "https://tu-dominio.com", // 👈 EDITA
-  /** Ubicación (opcional, se muestra en contacto). */
-  location: "España", // 👈 EDITA
+  tagline:
+    "Construyo sistemas empresariales y ERP de día, y exploro lo último en web e IA siempre que puedo.",
+  /** Dominio público (para SEO / Open Graph). Sin barra final. Cámbialo al desplegar. */
+  url: "https://orbita-portfolio.vercel.app", // 👈 EDITA al desplegar (p. ej. tu dominio o URL de Vercel)
+  /** Ubicación. */
+  location: "Bilbao, País Vasco",
   /** Email de contacto. */
-  email: "hola@tu-dominio.com", // 👈 EDITA
+  email: "ekainberna58@gmail.com",
 } as const;
 
 /** Bio / sección "Sobre mí". Cada string es un párrafo. */
 export const about: string[] = [
-  // 👈 EDITA estos párrafos con tu historia real.
-  "Soy una persona curiosa por naturaleza a la que le apasiona transformar ideas en interfaces que se sienten vivas. Me muevo cómodo entre el diseño y la ingeniería.",
-  "Disfruto especialmente con el detalle: la animación que llega en el momento justo, el rendimiento que no se nota porque simplemente funciona, y el código que otra persona puede leer mañana.",
+  "Soy Ekain, desarrollador de software en Bilbao. Me especializo en sistemas empresariales y desarrollo de ERP, y cada vez más en aplicaciones potenciadas con inteligencia artificial.",
+  "De día trabajo con Delphi y bases de datos en entornos ERP; el resto del tiempo no paro de explorar lo último —React, Three.js, IA con Claude, automatizaciones—. Me gusta estar a la última y aprender construyendo cosas reales.",
 ];
 
-/** Constelación de habilidades (stack). Agrupadas por categoría. */
+/** Constelación de habilidades (stack). */
 export const skills: { group: string; items: string[] }[] = [
-  // 👈 EDITA con tus tecnologías reales.
-  { group: "Frontend", items: ["React", "Next.js", "TypeScript", "Tailwind CSS"] },
-  { group: "Creativo / 3D", items: ["Three.js", "React Three Fiber", "GSAP", "WebGL"] },
-  { group: "Backend", items: ["Node.js", "PostgreSQL", "REST", "GraphQL"] },
-  { group: "Herramientas", items: ["Git", "Figma", "Vercel", "Vite"] },
+  { group: "Lenguajes", items: ["Delphi / Pascal", "C#", "Python", "TypeScript", "JavaScript", "SQL"] },
+  { group: "Frameworks", items: [".NET", "Node.js", "React", "Streamlit"] },
+  { group: "Bases de datos", items: ["SQL Server", "Firebird", "Oracle", "PostgreSQL"] },
+  { group: "IA & Automatización", items: ["Claude AI", "Telegram Bots", "OCR / documentos"] },
+  { group: "Herramientas", items: ["Git", "Docker", "REST APIs", "Figma"] },
 ];
 
 export type Project = {
   title: string;
   description: string;
   tags: string[];
-  /** Enlace al proyecto / demo. Usa "#" si aún no tienes. */
   href: string;
-  /** Enlace al repositorio (opcional). */
   repo?: string;
-  /** Año o estado. */
   year: string;
 };
 
 /** Proyectos destacados — los "mundos" que has visitado. */
 export const projects: Project[] = [
-  // 👈 EDITA con tus proyectos reales.
   {
-    title: "Proyecto Estelar",
+    title: "AitaTax-AI",
     description:
-      "Una aplicación web a pantalla completa con visualización de datos en tiempo real y micro-interacciones cuidadas.",
-    tags: ["Next.js", "TypeScript", "D3"],
-    href: "#",
-    repo: "#",
+      "Automatización fiscal con IA para autónomos: procesa documentos y prepara presentaciones usando Claude AI.",
+    tags: ["Python", "Claude AI", "Streamlit"],
+    href: "https://github.com/Chifas/AitaTax-AI",
+    repo: "https://github.com/Chifas/AitaTax-AI",
     year: "2025",
   },
   {
-    title: "Nebulosa UI",
+    title: "ZentroIA",
     description:
-      "Sistema de diseño y librería de componentes accesibles, documentada y publicada como paquete.",
-    tags: ["React", "Storybook", "a11y"],
-    href: "#",
-    repo: "#",
+      "Plataforma profesional de reservas para especialistas, con gestión de citas y clientes.",
+    tags: ["JavaScript", "Node.js", "Reservas"],
+    href: "https://github.com/Chifas/ZentroIA",
+    repo: "https://github.com/Chifas/ZentroIA",
+    year: "2025",
+  },
+  {
+    title: "Base_Camp",
+    description:
+      "Plataforma empresarial construida con TypeScript para centralizar la operativa de negocio.",
+    tags: ["TypeScript", "Plataforma"],
+    href: "https://github.com/Chifas/Base_Camp",
+    repo: "https://github.com/Chifas/Base_Camp",
     year: "2024",
   },
   {
-    title: "Órbita 3D",
+    title: "Presupuestos de Obra",
     description:
-      "Experiencia interactiva en WebGL con escena 3D, físicas ligeras y animaciones sincronizadas al scroll.",
-    tags: ["Three.js", "R3F", "GSAP"],
-    href: "#",
-    repo: "#",
+      "Gestor de presupuestos para pladur, escayola y construcción: cálculo y seguimiento de partidas.",
+    tags: ["JavaScript", "Construcción"],
+    href: "https://github.com/Chifas/presupuestos-obra",
+    repo: "https://github.com/Chifas/presupuestos-obra",
     year: "2024",
   },
 ];
@@ -87,37 +91,38 @@ export type Experience = {
   description: string;
 };
 
-/** Trayectoria / experiencia. */
+/** Trayectoria / experiencia. (Ajusta los años exactos si quieres). */
 export const experience: Experience[] = [
-  // 👈 EDITA con tu experiencia real.
   {
-    role: "Tu puesto actual",
-    company: "Empresa / Freelance",
-    period: "2024 — Hoy",
+    role: "Programador Analista — Desarrollo de ERP",
+    company: "Comeralia",
+    period: "Actualidad",
     description:
-      "Describe aquí tu impacto: qué construiste, con qué tecnologías y qué resultados conseguiste.",
+      "Desarrollo y mantenimiento de ERP con Delphi y bases de datos (SQL Server, Firebird, Oracle), atendiendo necesidades reales de negocio.",
   },
   {
-    role: "Puesto anterior",
-    company: "Empresa anterior",
-    period: "2022 — 2024",
+    role: "I+D — Desarrollo .NET",
+    company: "Zucchetti España",
+    period: "Anterior",
     description:
-      "Otro hito de tu carrera. Sé concreto/a con números y logros cuando puedas.",
+      "Departamento de I+D trabajando con C#/.NET y SQL Server en producto empresarial.",
   },
   {
-    role: "Inicio del viaje",
-    company: "Formación / primer empleo",
-    period: "2021 — 2022",
+    role: "Administrador de Sistemas",
+    company: "EKIN S.COOP",
+    period: "Inicios",
     description:
-      "Dónde empezó todo. Estudios, bootcamp o tu primer proyecto serio.",
+      "Administración de sistemas e infraestructura. Donde empezó el viaje por la tecnología.",
   },
 ];
 
-/** Redes y enlaces de contacto. Deja "" para ocultar uno. */
+/** Redes y enlaces de contacto. */
 export const socials: { label: string; href: string }[] = [
-  // 👈 EDITA con tus enlaces reales.
-  { label: "GitHub", href: "https://github.com/tu-usuario" },
-  { label: "LinkedIn", href: "https://linkedin.com/in/tu-usuario" },
+  { label: "GitHub", href: "https://github.com/Chifas" },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/ekain-bernabe-belaustegui-a82a35252/",
+  },
   { label: "Email", href: `mailto:${site.email}` },
 ];
 
