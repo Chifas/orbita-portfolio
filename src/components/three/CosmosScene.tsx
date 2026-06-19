@@ -20,7 +20,9 @@ const BILBAO_LON = -2.93;
 type Quality = "low" | "high";
 type Mouse = { x: number; y: number };
 
-/** lat/long → posición en una esfera con textura equirectangular estándar. */
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/** lat/long → posición en una esfera con textura equirectangular estándar (THREE.SphereGeometry). */
 function latLonToVector3(lat: number, lon: number, radius: number) {
   const phi = ((90 - lat) * Math.PI) / 180;
   const theta = ((lon + 180) * Math.PI) / 180;
@@ -44,6 +46,7 @@ function detectQuality(): Quality {
 /** Marcador luminoso de Bilbao sobre la superficie (hijo del grupo Tierra). */
 function BilbaoMarker({ approach }: { approach: RefObject<number> }) {
   const ring = useRef<THREE.Mesh>(null);
+  const dot = useRef<THREE.Mesh>(null);
   const pos = useMemo(() => latLonToVector3(BILBAO_LAT, BILBAO_LON, R * 1.005), []);
   const quat = useMemo(() => {
     const q = new THREE.Quaternion();
@@ -52,18 +55,21 @@ function BilbaoMarker({ approach }: { approach: RefObject<number> }) {
   }, [pos]);
 
   useFrame((state) => {
-    if (!ring.current) return;
-    const p = Math.sin(state.clock.elapsedTime * 3) * 0.5 + 0.5;
-    ring.current.scale.setScalar(1 + p * 1.4);
-    const mat = ring.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = (1 - p) * 0.8 * Math.min(1, approach.current * 2);
+    const a = approach.current;
+    const vis = clamp01(a * 2) * (1 - clamp01((a - 0.7) / 0.3)); // aparece y se va al entrar al 360
+    if (ring.current) {
+      const p = Math.sin(state.clock.elapsedTime * 3) * 0.5 + 0.5;
+      ring.current.scale.setScalar(1 + p * 1.4);
+      (ring.current.material as THREE.MeshBasicMaterial).opacity = (1 - p) * 0.8 * vis;
+    }
+    if (dot.current) (dot.current.material as THREE.MeshStandardMaterial).opacity = vis;
   });
 
   return (
     <group position={pos} quaternion={quat}>
-      <mesh>
+      <mesh ref={dot}>
         <sphereGeometry args={[0.03, 16, 16]} />
-        <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={4} toneMapped={false} />
+        <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={4} transparent toneMapped={false} />
       </mesh>
       <mesh ref={ring} position={[0, 0, 0.002]}>
         <ringGeometry args={[0.045, 0.065, 32]} />
@@ -73,15 +79,13 @@ function BilbaoMarker({ approach }: { approach: RefObject<number> }) {
   );
 }
 
-/** Tierra cartoon (toon). Al hacer scroll se acerca y gira para mostrar Bilbao. */
-function Earth({
-  approach,
-  segments,
-}: {
-  approach: RefObject<number>;
-  segments: number;
-}) {
+/** Tierra cartoon (toon). Al hacer scroll se acerca, gira a Bilbao y se desvanece. */
+function Earth({ approach, segments }: { approach: RefObject<number>; segments: number }) {
   const group = useRef<THREE.Group>(null);
+  const earthMat = useRef<THREE.MeshToonMaterial>(null);
+  const outlineMat = useRef<THREE.MeshBasicMaterial>(null);
+  const atmoMat = useRef<THREE.MeshBasicMaterial>(null);
+
   const map = useTexture("/textures/earth.jpg");
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 4;
@@ -95,11 +99,11 @@ function Earth({
     return tex;
   }, []);
 
-  // Orientación que deja Bilbao mirando a la cámara (ligeramente desde arriba).
+  // Orientación que deja Bilbao centrado mirando a la cámara (sin tilt → sin desviación a Canarias).
   const targetQuat = useMemo(() => {
     const dir = latLonToVector3(BILBAO_LAT, BILBAO_LON, 1);
     const q = new THREE.Quaternion();
-    q.setFromUnitVectors(dir, new THREE.Vector3(0, 0.3, 1).normalize());
+    q.setFromUnitVectors(dir, new THREE.Vector3(0, 0, 1));
     return q;
   }, []);
 
@@ -112,22 +116,29 @@ function Earth({
     } else {
       g.quaternion.slerp(targetQuat, 0.06); // viaje suave a Bilbao
     }
-    g.scale.setScalar(1 + a * 0.9); // se acerca/crece
+    g.scale.setScalar(1 + a * 0.9);
+
+    const fade = 1 - clamp01((a - 0.7) / 0.3); // se desvanece al entrar al 360
+    if (earthMat.current) earthMat.current.opacity = fade;
+    if (outlineMat.current) outlineMat.current.opacity = fade;
+    if (atmoMat.current) atmoMat.current.opacity = 0.14 * fade;
+    g.visible = fade > 0.001;
   });
 
   return (
     <group ref={group} rotation={[0.35, 0, 0.18]}>
       <mesh scale={1.035}>
         <sphereGeometry args={[R, segments, segments]} />
-        <meshBasicMaterial color="#070b22" side={THREE.BackSide} />
+        <meshBasicMaterial ref={outlineMat} color="#070b22" side={THREE.BackSide} transparent />
       </mesh>
       <mesh>
         <sphereGeometry args={[R, segments, segments]} />
-        <meshToonMaterial map={map} gradientMap={gradientMap} />
+        <meshToonMaterial ref={earthMat} map={map} gradientMap={gradientMap} transparent />
       </mesh>
       <mesh scale={1.14}>
         <sphereGeometry args={[R, segments, segments]} />
         <meshBasicMaterial
+          ref={atmoMat}
           color="#38bdf8"
           side={THREE.BackSide}
           transparent
@@ -146,13 +157,11 @@ function Moon() {
   const ref = useRef<THREE.Mesh>(null);
   const map = useTexture("/textures/moon.jpg");
   map.colorSpace = THREE.SRGBColorSpace;
-
   useFrame((state) => {
     const t = state.clock.elapsedTime * 0.5;
     ref.current?.position.set(Math.cos(t) * 2.8, Math.sin(t) * 0.6, Math.sin(t) * 2.8);
     if (ref.current) ref.current.rotation.y += 0.003;
   });
-
   return (
     <mesh ref={ref}>
       <sphereGeometry args={[0.28, 32, 32]} />
@@ -174,11 +183,9 @@ function DebrisRing({ count }: { count: number }) {
     }
     return arr;
   }, [count]);
-
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * 0.05;
   });
-
   return (
     <points ref={ref} rotation={[0.5, 0, 0.2]}>
       <bufferGeometry>
@@ -189,14 +196,14 @@ function DebrisRing({ count }: { count: number }) {
   );
 }
 
-/** Cuerpos en órbita (Luna + anillo) que se desvanecen al acercarnos a Bilbao. */
+/** Cuerpos en órbita (Luna + anillo) que se desvanecen al acercarnos. */
 function OrbitingBodies({ approach, count }: { approach: RefObject<number>; count: number }) {
   const ref = useRef<THREE.Group>(null);
   useFrame(() => {
     if (!ref.current) return;
     const a = approach.current;
-    ref.current.visible = a < 0.85;
-    ref.current.scale.setScalar(Math.max(0.001, 1 - a * 1.15));
+    ref.current.visible = a < 0.7;
+    ref.current.scale.setScalar(Math.max(0.001, 1 - a * 1.3));
   });
   return (
     <group ref={ref}>
@@ -205,6 +212,40 @@ function OrbitingBodies({ approach, count }: { approach: RefObject<number>; coun
         <DebrisRing count={count} />
       </Float>
     </group>
+  );
+}
+
+/**
+ * Panorama 360° (esfera invertida centrada en la cámara). Entra en crossfade al
+ * acercarnos a Bilbao y se puede mirar alrededor con el ratón.
+ * Reemplaza public/textures/sanmames-360.jpg por una panorámica real de San Mamés.
+ */
+function Panorama({ approach, mouse }: { approach: RefObject<number>; mouse: RefObject<Mouse> }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const { camera } = useThree();
+  const map = useTexture("/textures/sanmames-360.jpg");
+  map.colorSpace = THREE.SRGBColorSpace;
+
+  useFrame((_, delta) => {
+    const m = mesh.current;
+    if (!m) return;
+    const a = approach.current;
+    const op = clamp01((a - 0.6) / 0.4); // fundido de entrada 0.6 → 1
+    m.visible = op > 0.001;
+    if (matRef.current) matRef.current.opacity = op;
+    // Centrada en la cámara → siempre estás dentro del 360.
+    m.position.copy(camera.position);
+    // Giro lento automático + mirar alrededor con el ratón.
+    m.rotation.y += delta * 0.02 + (mouse.current.x * 0.0015);
+    m.rotation.x += (mouse.current.y * 0.15 - m.rotation.x) * 0.05;
+  });
+
+  return (
+    <mesh ref={mesh} scale={[-1, 1, 1]} renderOrder={2}>
+      <sphereGeometry args={[12, 48, 32]} />
+      <meshBasicMaterial ref={matRef} map={map} transparent opacity={0} depthWrite={false} toneMapped={false} />
+    </mesh>
   );
 }
 
@@ -219,11 +260,9 @@ function Dust({ count }: { count: number }) {
     }
     return arr;
   }, [count]);
-
   useFrame((_, delta) => {
     if (points.current) points.current.rotation.y += delta * 0.02;
   });
-
   return (
     <points ref={points}>
       <bufferGeometry>
@@ -234,13 +273,13 @@ function Dust({ count }: { count: number }) {
   );
 }
 
-/** Cámara: se acerca con el scroll (zoom a Bilbao) + leve parallax con el ratón. */
+/** Cámara: se acerca con el scroll + leve parallax con el ratón. */
 function CameraRig({ approach, mouse }: { approach: RefObject<number>; mouse: RefObject<Mouse> }) {
   const { camera } = useThree();
   useFrame(() => {
     const a = approach.current;
-    const targetZ = 5 - a * 1.9;
-    const damp = 1 - a * 0.85; // menos parallax cuanto más cerca
+    const targetZ = 5 - a * 2.3; // 5 → 2.7 (cerca de Bilbao)
+    const damp = 1 - a * 0.85;
     camera.position.x += (mouse.current.x * 0.8 * damp - camera.position.x) * 0.04;
     camera.position.y += (mouse.current.y * 0.5 * damp - camera.position.y) * 0.04;
     camera.position.z += (targetZ - camera.position.z) * 0.04;
@@ -270,7 +309,6 @@ export default function CosmosScene() {
 
   useEffect(() => {
     const onScroll = () => {
-      // Llega a "Bilbao" tras ~1.4 alturas de pantalla.
       approach.current = Math.min(window.scrollY / (window.innerHeight * 1.4), 1);
     };
     const onMouse = (e: MouseEvent) => {
@@ -303,6 +341,7 @@ export default function CosmosScene() {
       <Suspense fallback={null}>
         <Earth approach={approach} segments={high ? 48 : 32} />
         <OrbitingBodies approach={approach} count={high ? 320 : 160} />
+        <Panorama approach={approach} mouse={mouse} />
       </Suspense>
 
       <Dust count={high ? 250 : 120} />
