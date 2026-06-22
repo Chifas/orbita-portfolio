@@ -99,11 +99,13 @@ const EARTH_FRAG = /* glsl */ `
   varying vec3 vObjNormal;
   void main() {
     float c = dot(normalize(vObjNormal), normalize(sunDirection));
-    float t = smoothstep(-0.12, 0.12, c); // 0 = noche, 1 = día (terminador suave)
+    float t = smoothstep(-0.18, 0.18, c); // 0 = noche, 1 = día (terminador suave)
     vec3 day = texture2D(dayTexture, vUv).rgb;       // lineal (textura sRGB decodificada por GPU)
     vec3 night = texture2D(nightTexture, vUv).rgb;
-    vec3 nightCol = night * vec3(1.25, 1.05, 0.7) * 1.5; // luces de ciudad cálidas
-    vec3 col = mix(nightCol, day, t);
+    vec3 dayCol = day * 1.25;                          // día más luminoso
+    vec3 cityLights = night * vec3(1.3, 1.1, 0.75) * 1.7; // luces de ciudad cálidas
+    vec3 nightCol = day * 0.28 + cityLights;          // "luz de tierra" tenue + ciudades (no negro)
+    vec3 col = mix(nightCol, dayCol, t);
     gl_FragColor = vec4(pow(col, vec3(1.0 / 2.2)), uOpacity); // lineal → sRGB
   }
 `;

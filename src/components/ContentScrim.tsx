@@ -16,7 +16,7 @@ export function ContentScrim() {
     if (!el) return;
     const onScroll = () => {
       const p = Math.min(window.scrollY / (window.innerHeight * 0.8), 1);
-      el.style.opacity = String(0.28 + p * 0.34); // 0.28 (hero) → 0.62 (secciones)
+      el.style.opacity = String(0.16 + p * 0.3); // 0.16 (hero) → 0.46 (secciones)
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -28,7 +28,7 @@ export function ContentScrim() {
       ref={ref}
       aria-hidden="true"
       className="pointer-events-none fixed inset-0"
-      style={{ zIndex: -6, background: "var(--void)", opacity: 0.28 }}
+      style={{ zIndex: -6, background: "var(--void)", opacity: 0.16 }}
     />
   );
 }
