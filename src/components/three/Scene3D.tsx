@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 /** Carga diferida y solo en cliente de la escena WebGL. */
 const CosmosScene = dynamic(() => import("./CosmosScene"), {
@@ -39,8 +39,31 @@ function usePrefersReducedMotion() {
 }
 
 export function Scene3D() {
-  // Si el usuario prefiere menos movimiento, ni cargamos Three.js: fondo estático
-  // (mejor rendimiento y accesibilidad).
   const reduce = usePrefersReducedMotion();
-  return reduce ? <SceneFallback /> : <CosmosScene />;
+
+  // Montamos el WebGL cuando el navegador está libre (tras el primer pintado),
+  // para que la carga inicial sea fluida y no compita con la hidratación.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (reduce) return;
+    type IdleWin = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const w = window as IdleWin;
+    let idleId = 0;
+    let timeoutId = 0;
+    if (w.requestIdleCallback) {
+      idleId = w.requestIdleCallback(() => setReady(true), { timeout: 1200 });
+    } else {
+      timeoutId = window.setTimeout(() => setReady(true), 500);
+    }
+    return () => {
+      if (idleId && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [reduce]);
+
+  if (reduce || !ready) return <SceneFallback />;
+  return <CosmosScene />;
 }

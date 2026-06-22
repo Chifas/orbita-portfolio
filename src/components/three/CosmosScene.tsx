@@ -3,8 +3,9 @@
 import { Suspense, useRef, useMemo, useState, useEffect, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Float, Stars, useTexture, PerformanceMonitor } from "@react-three/drei";
-import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
+import { getSkyState } from "@/lib/sky";
 
 /** Generador pseudo-aleatorio determinista (puro) basado en un índice. */
 function det(n: number, spread: number) {
@@ -79,27 +80,62 @@ function BilbaoMarker({ approach }: { approach: RefObject<number> }) {
   );
 }
 
-/** Tierra cartoon (toon). Al hacer scroll se acerca, gira a Bilbao y se desvanece. */
-function Earth({ approach, segments }: { approach: RefObject<number>; segments: number }) {
+const EARTH_VERT = /* glsl */ `
+  varying vec2 vUv;
+  varying vec3 vObjNormal;
+  void main() {
+    vUv = uv;
+    vObjNormal = normal; // normal en espacio del objeto (anclado a la geografía)
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const EARTH_FRAG = /* glsl */ `
+  uniform sampler2D dayTexture;
+  uniform sampler2D nightTexture;
+  uniform vec3 sunDirection;
+  uniform float uOpacity;
+  varying vec2 vUv;
+  varying vec3 vObjNormal;
+  void main() {
+    float c = dot(normalize(vObjNormal), normalize(sunDirection));
+    float t = smoothstep(-0.12, 0.12, c); // 0 = noche, 1 = día (terminador suave)
+    vec3 day = texture2D(dayTexture, vUv).rgb;       // lineal (textura sRGB decodificada por GPU)
+    vec3 night = texture2D(nightTexture, vUv).rgb;
+    vec3 nightCol = night * vec3(1.25, 1.05, 0.7) * 1.5; // luces de ciudad cálidas
+    vec3 col = mix(nightCol, day, t);
+    gl_FragColor = vec4(pow(col, vec3(1.0 / 2.2)), uOpacity); // lineal → sRGB
+  }
+`;
+
+/** Tierra con día/noche real (luces de ciudad). Gira a Bilbao y se desvanece al final. */
+function Earth({
+  approach,
+  segments,
+  sun,
+}: {
+  approach: RefObject<number>;
+  segments: number;
+  sun: [number, number, number];
+}) {
   const group = useRef<THREE.Group>(null);
-  const earthMat = useRef<THREE.MeshToonMaterial>(null);
-  const outlineMat = useRef<THREE.MeshBasicMaterial>(null);
-  const atmoMat = useRef<THREE.MeshBasicMaterial>(null);
+  const matRef = useRef<THREE.ShaderMaterial>(null);
 
-  const map = useTexture("/textures/earth.jpg");
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 4;
+  const [dayMap, nightMap] = useTexture(["/textures/earth.jpg", "/textures/earth-night.png"]);
+  dayMap.colorSpace = THREE.SRGBColorSpace;
+  nightMap.colorSpace = THREE.SRGBColorSpace;
+  dayMap.anisotropy = 4;
 
-  const gradientMap = useMemo(() => {
-    const steps = new Uint8Array([70, 130, 190, 245]);
-    const tex = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
-    tex.minFilter = THREE.NearestFilter;
-    tex.magFilter = THREE.NearestFilter;
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
+  const uniforms = useMemo(
+    () => ({
+      dayTexture: { value: dayMap },
+      nightTexture: { value: nightMap },
+      sunDirection: { value: new THREE.Vector3(sun[0], sun[1], sun[2]) },
+      uOpacity: { value: 1 },
+    }),
+    [dayMap, nightMap, sun],
+  );
 
-  // Orientación que deja Bilbao centrado mirando a la cámara (sin tilt → sin desviación a Canarias).
   const targetQuat = useMemo(() => {
     const dir = latLonToVector3(BILBAO_LAT, BILBAO_LON, 1);
     const q = new THREE.Quaternion();
@@ -116,35 +152,21 @@ function Earth({ approach, segments }: { approach: RefObject<number>; segments: 
     } else {
       g.quaternion.slerp(targetQuat, 0.06); // viaje suave a Bilbao
     }
-    g.scale.setScalar(1 + a * 0.9);
-
     const fade = 1 - clamp01((a - 0.72) / 0.23); // se desvanece al final (llegada a Bilbao)
-    if (earthMat.current) earthMat.current.opacity = fade;
-    if (outlineMat.current) outlineMat.current.opacity = fade;
-    if (atmoMat.current) atmoMat.current.opacity = 0.14 * fade;
+    if (matRef.current) matRef.current.uniforms.uOpacity.value = fade;
     g.visible = fade > 0.001;
   });
 
   return (
     <group ref={group} rotation={[0.35, 0, 0.18]}>
-      <mesh scale={1.035}>
-        <sphereGeometry args={[R, segments, segments]} />
-        <meshBasicMaterial ref={outlineMat} color="#070b22" side={THREE.BackSide} transparent />
-      </mesh>
       <mesh>
         <sphereGeometry args={[R, segments, segments]} />
-        <meshToonMaterial ref={earthMat} map={map} gradientMap={gradientMap} transparent />
-      </mesh>
-      <mesh scale={1.14}>
-        <sphereGeometry args={[R, segments, segments]} />
-        <meshBasicMaterial
-          ref={atmoMat}
-          color="#38bdf8"
-          side={THREE.BackSide}
+        <shaderMaterial
+          ref={matRef}
+          uniforms={uniforms}
+          vertexShader={EARTH_VERT}
+          fragmentShader={EARTH_FRAG}
           transparent
-          opacity={0.14}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
         />
       </mesh>
       <BilbaoMarker approach={approach} />
@@ -152,66 +174,32 @@ function Earth({ approach, segments }: { approach: RefObject<number>; segments: 
   );
 }
 
-/** Luna texturizada en órbita. */
-function Moon() {
+/** Luna texturizada en órbita (mantiene su posición; se desvanece con opacidad). */
+function Moon({ approach }: { approach: RefObject<number> }) {
   const ref = useRef<THREE.Mesh>(null);
+  const mat = useRef<THREE.MeshStandardMaterial>(null);
   const map = useTexture("/textures/moon.jpg");
   map.colorSpace = THREE.SRGBColorSpace;
   useFrame((state) => {
     const t = state.clock.elapsedTime * 0.5;
     ref.current?.position.set(Math.cos(t) * 2.8, Math.sin(t) * 0.6, Math.sin(t) * 2.8);
     if (ref.current) ref.current.rotation.y += 0.003;
+    if (mat.current) mat.current.opacity = 1 - clamp01((approach.current - 0.6) / 0.25);
   });
   return (
     <mesh ref={ref}>
       <sphereGeometry args={[0.28, 32, 32]} />
-      <meshStandardMaterial map={map} roughness={1} metalness={0} />
+      <meshStandardMaterial ref={mat} map={map} roughness={1} metalness={0} transparent />
     </mesh>
   );
 }
 
-function DebrisRing({ count }: { count: number }) {
-  const ref = useRef<THREE.Points>(null);
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2;
-      const r = 2.3 + det(i, 0.45);
-      arr[i * 3] = Math.cos(a) * r;
-      arr[i * 3 + 1] = det(i + 99, 0.15);
-      arr[i * 3 + 2] = Math.sin(a) * r;
-    }
-    return arr;
-  }, [count]);
-  useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.y += delta * 0.05;
-  });
+/** Cuerpos en órbita (solo la Luna). Mantiene su posición; se desvanece con opacidad. */
+function OrbitingBodies({ approach }: { approach: RefObject<number> }) {
   return (
-    <points ref={ref} rotation={[0.5, 0, 0.2]}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial size={0.03} color="#22d3ee" transparent opacity={0.7} sizeAttenuation toneMapped={false} />
-    </points>
-  );
-}
-
-/** Cuerpos en órbita (Luna + anillo) que se desvanecen al acercarnos. */
-function OrbitingBodies({ approach, count }: { approach: RefObject<number>; count: number }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame(() => {
-    if (!ref.current) return;
-    const a = approach.current;
-    ref.current.visible = a < 0.92;
-    ref.current.scale.setScalar(Math.max(0.001, 1 - clamp01((a - 0.45) / 0.45)));
-  });
-  return (
-    <group ref={ref}>
-      <Float speed={1.2} rotationIntensity={0.3} floatIntensity={0.5}>
-        <Moon />
-        <DebrisRing count={count} />
-      </Float>
-    </group>
+    <Float speed={1.2} rotationIntensity={0.3} floatIntensity={0.5}>
+      <Moon approach={approach} />
+    </Float>
   );
 }
 
@@ -234,7 +222,7 @@ function Dust({ count }: { count: number }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.03} color="#9aa0b4" transparent opacity={0.6} sizeAttenuation />
+      <pointsMaterial size={0.025} color="#9aa0b4" transparent opacity={0.4} sizeAttenuation />
     </points>
   );
 }
@@ -244,7 +232,7 @@ function CameraRig({ approach, mouse }: { approach: RefObject<number>; mouse: Re
   const { camera } = useThree();
   useFrame(() => {
     const a = approach.current;
-    const targetZ = 5 - a * 2.3; // 5 → 2.7 (cerca de Bilbao)
+    const targetZ = 5 - a * 3; // 5 → 2.0 (acercamiento a Bilbao, sin entrar en el planeta)
     const damp = 1 - a * 0.85;
     camera.position.x += (mouse.current.x * 0.8 * damp - camera.position.x) * 0.04;
     camera.position.y += (mouse.current.y * 0.5 * damp - camera.position.y) * 0.04;
@@ -270,8 +258,19 @@ export default function CosmosScene() {
   const [quality] = useState<Quality>(detectQuality);
   const high = quality === "high";
 
-  const [dpr, setDpr] = useState(high ? 1.5 : 1);
-  const [bloom, setBloom] = useState(high);
+  // Estado del cielo según la hora local del visitante (sol, colores, intensidad).
+  const sky = useMemo(() => getSkyState(), []);
+
+  // Arrancamos a baja resolución; el PerformanceMonitor la sube si hay FPS.
+  const [dpr, setDpr] = useState(1);
+  // El bloom (compilar shaders) se activa un poco después, no en el arranque.
+  const [bloom, setBloom] = useState(false);
+
+  useEffect(() => {
+    if (!high) return;
+    const t = setTimeout(() => setBloom(true), 1800);
+    return () => clearTimeout(t);
+  }, [high]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -300,19 +299,23 @@ export default function CosmosScene() {
       dpr={dpr}
       gl={{ antialias: high, alpha: true, stencil: false, powerPreference: "high-performance" }}
     >
-      <color attach="background" args={["#060814"]} />
-      <fog attach="fog" args={["#060814", 7, 18]} />
+      <color attach="background" args={[sky.background]} />
+      <fog attach="fog" args={[sky.fog, 7, 18]} />
 
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[4, 2, 3]} intensity={1.6} color="#fff7e6" />
-      <pointLight position={[-4, -2, -2]} intensity={2} color="#7c5cff" />
+      <ambientLight intensity={0.5} />
+      <directionalLight
+        position={[sky.sun[0] * 5, sky.sun[1] * 5, sky.sun[2] * 5]}
+        intensity={sky.sunIntensity}
+        color={sky.sunColor}
+      />
+      <pointLight position={[-4, -2, -2]} intensity={1.4} color="#7c5cff" />
 
       <Suspense fallback={null}>
-        <Earth approach={approach} segments={high ? 48 : 32} />
-        <OrbitingBodies approach={approach} count={high ? 320 : 160} />
+        <Earth approach={approach} segments={high ? 48 : 32} sun={sky.sun} />
+        <OrbitingBodies approach={approach} />
       </Suspense>
 
-      <Dust count={high ? 250 : 120} />
+      <Dust count={high ? 160 : 80} />
       <Stars radius={60} depth={40} count={high ? 1800 : 700} factor={4} saturation={0} fade speed={0.5} />
 
       <CameraRig approach={approach} mouse={mouse} />
@@ -333,7 +336,6 @@ export default function CosmosScene() {
       {bloom && (
         <EffectComposer>
           <Bloom intensity={0.7} luminanceThreshold={0.3} luminanceSmoothing={0.9} mipmapBlur />
-          <Vignette offset={0.25} darkness={0.6} />
         </EffectComposer>
       )}
     </Canvas>
