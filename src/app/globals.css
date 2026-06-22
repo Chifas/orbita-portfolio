@@ -47,12 +47,15 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* Leve sombra para que cualquier texto se lea sobre el fondo 3D */
+  text-shadow: 0 1px 10px rgba(3, 4, 12, 0.45);
 }
 
 /* Tipografía de marca para títulos */
 h1, h2, h3, h4 {
   font-family: var(--font-display), system-ui, sans-serif;
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(3, 4, 12, 0.55);
 }
 
 /* Etiquetas de sección "telemetría" */

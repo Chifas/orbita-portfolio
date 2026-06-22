@@ -259,7 +259,19 @@ export default function CosmosScene() {
   const high = quality === "high";
 
   // Estado del cielo según la hora local del visitante (sol, colores, intensidad).
-  const sky = useMemo(() => getSkyState(), []);
+  // Modo prueba: ?hora=20 fuerza esa hora local (20:00) para ver otras franjas.
+  const sky = useMemo(() => {
+    const override = new URLSearchParams(window.location.search).get("hora");
+    if (override !== null) {
+      const h = parseFloat(override);
+      if (!Number.isNaN(h)) {
+        const d = new Date();
+        d.setHours(Math.floor(h), Math.round((h % 1) * 60), 0, 0);
+        return getSkyState(d);
+      }
+    }
+    return getSkyState();
+  }, []);
 
   // Arrancamos a baja resolución; el PerformanceMonitor la sube si hay FPS.
   const [dpr, setDpr] = useState(1);

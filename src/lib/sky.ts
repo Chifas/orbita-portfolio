@@ -60,6 +60,61 @@ function phaseFor(h: number): SkyPhase {
   return "night";
 }
 
+// ── Tono de la UI según la hora (textos y acentos; la web sigue oscura) ──────
+type Rgb = [number, number, number];
+type ToneKey = { h: number; star: Rgb; dim: Rgb; neb: Rgb; pla: Rgb; v1: Rgb; v2: Rgb };
+
+const TONE: ToneKey[] = [
+  // noche: blanco frío, grises fríos, acentos violeta/cian
+  { h: 0, star: [238, 240, 255], dim: [139, 145, 168], neb: [124, 92, 255], pla: [34, 211, 238], v1: [5, 6, 15], v2: [11, 14, 31] },
+  // amanecer: blanco cálido, acentos naranja/dorado
+  { h: 6, star: [253, 243, 234], dim: [183, 159, 146], neb: [255, 158, 109], pla: [255, 209, 122], v1: [14, 10, 20], v2: [24, 17, 33] },
+  // día: blanco neutro, acentos azul cielo/teal
+  { h: 9, star: [245, 247, 255], dim: [154, 166, 192], neb: [110, 168, 255], pla: [94, 234, 212], v1: [10, 16, 32], v2: [17, 26, 46] },
+  { h: 17, star: [245, 247, 255], dim: [154, 166, 192], neb: [110, 168, 255], pla: [94, 234, 212], v1: [10, 16, 32], v2: [17, 26, 46] },
+  // atardecer: blanco cálido, acentos naranja/morado
+  { h: 19.5, star: [253, 238, 230], dim: [185, 156, 165], neb: [255, 126, 77], pla: [199, 125, 255], v1: [17, 10, 22], v2: [26, 15, 30] },
+  { h: 22, star: [238, 240, 255], dim: [139, 145, 168], neb: [124, 92, 255], pla: [34, 211, 238], v1: [5, 6, 15], v2: [11, 14, 31] },
+  { h: 24, star: [238, 240, 255], dim: [139, 145, 168], neb: [124, 92, 255], pla: [34, 211, 238], v1: [5, 6, 15], v2: [11, 14, 31] },
+];
+
+export type UiTone = {
+  star: string;
+  starDim: string;
+  nebula: string;
+  plasma: string;
+  void1: string;
+  void2: string;
+};
+
+/** Colores de UI (oscuros) interpolados según la hora local. */
+export function getUiTone(date: Date = new Date()): UiTone {
+  const h = date.getHours() + date.getMinutes() / 60;
+  let a = TONE[0];
+  let b = TONE[TONE.length - 1];
+  for (let i = 0; i < TONE.length - 1; i++) {
+    if (h >= TONE[i].h && h <= TONE[i + 1].h) {
+      a = TONE[i];
+      b = TONE[i + 1];
+      break;
+    }
+  }
+  const t = Math.min(1, Math.max(0, (h - a.h) / (b.h - a.h || 1)));
+  const mix = (x: Rgb, y: Rgb): [number, number, number] => [
+    lerp(x[0], y[0], t),
+    lerp(x[1], y[1], t),
+    lerp(x[2], y[2], t),
+  ];
+  return {
+    star: hex(mix(a.star, b.star)),
+    starDim: hex(mix(a.dim, b.dim)),
+    nebula: hex(mix(a.neb, b.neb)),
+    plasma: hex(mix(a.pla, b.pla)),
+    void1: hex(mix(a.v1, b.v1)),
+    void2: hex(mix(a.v2, b.v2)),
+  };
+}
+
 /** Estado del cielo para una fecha/hora (por defecto, ahora). */
 export function getSkyState(date: Date = new Date()): SkyState {
   const h = date.getHours() + date.getMinutes() / 60;
