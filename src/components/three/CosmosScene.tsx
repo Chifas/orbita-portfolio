@@ -118,7 +118,7 @@ function Earth({ approach, segments }: { approach: RefObject<number>; segments: 
     }
     g.scale.setScalar(1 + a * 0.9);
 
-    const fade = 1 - clamp01((a - 0.7) / 0.3); // se desvanece al entrar al 360
+    const fade = 1 - clamp01((a - 0.72) / 0.23); // se desvanece al final (llegada a Bilbao)
     if (earthMat.current) earthMat.current.opacity = fade;
     if (outlineMat.current) outlineMat.current.opacity = fade;
     if (atmoMat.current) atmoMat.current.opacity = 0.14 * fade;
@@ -202,8 +202,8 @@ function OrbitingBodies({ approach, count }: { approach: RefObject<number>; coun
   useFrame(() => {
     if (!ref.current) return;
     const a = approach.current;
-    ref.current.visible = a < 0.7;
-    ref.current.scale.setScalar(Math.max(0.001, 1 - a * 1.3));
+    ref.current.visible = a < 0.92;
+    ref.current.scale.setScalar(Math.max(0.001, 1 - clamp01((a - 0.45) / 0.45)));
   });
   return (
     <group ref={ref}>
@@ -275,7 +275,10 @@ export default function CosmosScene() {
 
   useEffect(() => {
     const onScroll = () => {
-      approach.current = Math.min(window.scrollY / (window.innerHeight * 1.4), 1);
+      // Progreso sobre TODA la página: el zoom/aterrizaje ocurre poco a poco
+      // a lo largo de todo el scroll y culmina al final (en Bilbao).
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      approach.current = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
     };
     const onMouse = (e: MouseEvent) => {
       mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
