@@ -11,7 +11,7 @@ export function SectionHeading({
   intro?: string;
 }) {
   return (
-    <Reveal className="mb-12 max-w-2xl">
+    <Reveal className="text-plate mb-12 w-fit max-w-2xl">
       <p className="eyebrow mb-4">{eyebrow}</p>
       <h2 className="text-3xl font-bold sm:text-5xl">{title}</h2>
       {intro && <p className="mt-5 text-lg text-star-dim">{intro}</p>}

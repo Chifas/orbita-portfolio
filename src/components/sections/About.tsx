@@ -8,7 +8,7 @@ export function About() {
       <SectionHeading eyebrow="01 · Sobre mí" title="Quién hay detrás del código" />
 
       <div className="grid gap-12 md:grid-cols-[1.5fr_1fr]">
-        <Reveal stagger className="space-y-5 text-lg leading-relaxed text-star-dim">
+        <Reveal stagger className="text-plate h-fit space-y-5 text-lg leading-relaxed text-star-dim">
           {about.map((paragraph, i) => (
             <p key={i}>{paragraph}</p>
           ))}
