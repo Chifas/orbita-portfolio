@@ -2,6 +2,7 @@ import { Scene3D } from "@/components/three/Scene3D";
 import { BilbaoBackdrop } from "@/components/BilbaoBackdrop";
 import { ContentScrim } from "@/components/ContentScrim";
 import { ThemeTone } from "@/components/ThemeTone";
+import { ConsoleHello } from "@/components/ConsoleHello";
 import { ShootingStars } from "@/components/ShootingStars";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Navbar } from "@/components/Navbar";
@@ -19,6 +20,7 @@ export default function Home() {
   return (
     <SmoothScroll>
       <ThemeTone />
+      <ConsoleHello />
       {/* Fondos fijos detrás de todo: espacio (WebGL) + Bilbao al final */}
       <Scene3D />
       <ContentScrim />

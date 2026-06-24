@@ -1,13 +1,37 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Magnetic } from "../Magnetic";
+import { getGreeting } from "@/lib/sky";
 import { site } from "@/config/site";
+
+/** Saludo según la hora local (respeta ?hora=); SSR-safe para no romper hidratación. */
+function greetingNow(): string {
+  const override = new URLSearchParams(window.location.search).get("hora");
+  if (override !== null) {
+    const h = parseFloat(override);
+    if (!Number.isNaN(h)) {
+      const d = new Date();
+      d.setHours(Math.floor(h), 0, 0, 0);
+      return getGreeting(d);
+    }
+  }
+  return getGreeting();
+}
+
+function useGreeting(): string {
+  return useSyncExternalStore(
+    () => () => {},
+    greetingNow,
+    () => "Hola",
+  );
+}
 
 export function Hero() {
   const root = useRef<HTMLElement>(null);
+  const greeting = useGreeting();
 
   useGSAP(
     () => {
@@ -48,7 +72,7 @@ export function Hero() {
         data-hero="title"
         className="relative z-10 max-w-4xl text-balance text-5xl font-bold leading-[1.05] sm:text-7xl"
       >
-        <span className="block">Hola, soy</span>
+        <span className="block">{greeting}, soy</span>
         <span className="block text-gradient">{site.name}</span>
       </h1>
 

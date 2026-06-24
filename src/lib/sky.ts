@@ -60,6 +60,14 @@ function phaseFor(h: number): SkyPhase {
   return "night";
 }
 
+/** Saludo según la hora local (humaniza el hero). */
+export function getGreeting(date: Date = new Date()): string {
+  const h = date.getHours();
+  if (h >= 6 && h < 13) return "Buenos días";
+  if (h >= 13 && h < 20) return "Buenas tardes";
+  return "Buenas noches";
+}
+
 // ── Tono de la UI según la hora (textos y acentos; la web sigue oscura) ──────
 type Rgb = [number, number, number];
 type ToneKey = { h: number; star: Rgb; dim: Rgb; neb: Rgb; pla: Rgb; v1: Rgb; v2: Rgb };
