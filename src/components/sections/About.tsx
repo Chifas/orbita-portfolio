@@ -33,7 +33,7 @@ export function About() {
                 alt={site.name}
                 width={64}
                 height={64}
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-plasma/40"
+                className="h-16 w-16 rounded-full object-cover object-[center_22%] ring-2 ring-plasma/40"
               />
             ) : (
               <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-nebula to-plasma font-display text-xl font-bold text-void">

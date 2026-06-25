@@ -19,7 +19,7 @@ export const site = {
   /** Email de contacto. */
   email: "ekainberna58@gmail.com",
   /** Foto de perfil. Guarda tu imagen en public/images/ y pon aquí la ruta. "" = avatar con iniciales. */
-  photo: "", // 👈 EDITA: pon "/images/ekain.jpg" cuando subas tu foto
+  photo: "/images/ekain.jpeg",
   /** Frase/manía personal (guiño en "Sobre mí"). */
   quote: "Si me obsesiono con algo, no paro hasta conseguirlo.",
 } as const;
