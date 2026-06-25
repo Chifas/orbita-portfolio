@@ -11,7 +11,7 @@ export const site = {
   role: "Desarrollador de Software",
   /** Frase corta de marca (tagline). */
   tagline:
-    "Construyo sistemas empresariales y ERP de día, y exploro lo último en web e IA siempre que puedo.",
+    "De día domo ERPs con Delphi; de noche cacharreo con React, Three.js e IA. Aprender construyendo es mi vicio.",
   /** Dominio público (para SEO / Open Graph). Sin barra final. Cámbialo al desplegar. */
   url: "https://orbita-portfolio.vercel.app", // 👈 EDITA al desplegar (p. ej. tu dominio o URL de Vercel)
   /** Ubicación. */
@@ -22,8 +22,8 @@ export const site = {
 
 /** Bio / sección "Sobre mí". Cada string es un párrafo. */
 export const about: string[] = [
-  "Soy Ekain, desarrollador de software en Bilbao. Me especializo en sistemas empresariales y desarrollo de ERP, y cada vez más en aplicaciones potenciadas con inteligencia artificial.",
-  "De día trabajo con Delphi y bases de datos en entornos ERP; el resto del tiempo no paro de explorar lo último —React, Three.js, IA con Claude, automatizaciones—. Me gusta estar a la última y aprender construyendo cosas reales.",
+  "Soy Ekain, de Bilbao. Llevo años metido en sistemas empresariales y ERP, pero si algo me define es que no sé estarme quieto: siempre ando trasteando con alguna tecnología nueva.",
+  "De día trabajo con Delphi y bases de datos; al salir me lío con React, Three.js, IA con Claude y automatizaciones varias. Me obsesiona el detalle y dejar el código de forma que mañana —otro, o yo mismo— lo entienda a la primera.",
 ];
 
 /** Constelación de habilidades (stack). */

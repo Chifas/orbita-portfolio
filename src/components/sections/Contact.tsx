@@ -22,8 +22,8 @@ export function Contact() {
             ¿Construimos algo que <span className="text-gradient">orbite</span> alto?
           </h2>
           <p className="mx-auto mt-5 max-w-md text-star-dim">
-            Estoy a un mensaje de distancia. Hablemos de tu proyecto, una colaboración o
-            simplemente para saludar.
+            Tienes una idea, una oferta o solo te apetece saludar. Escríbeme: respondo
+            rápido (y de buenas).
           </p>
 
           <Magnetic className="mt-9">

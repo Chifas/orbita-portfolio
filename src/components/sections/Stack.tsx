@@ -8,7 +8,7 @@ export function Stack() {
       <SectionHeading
         eyebrow="02 · Stack"
         title="Mi constelación técnica"
-        intro="Las herramientas con las que construyo, agrupadas por órbita."
+        intro="Con lo que construyo cada día (y lo que ando aprendiendo ahora mismo)."
       />
 
       <Reveal stagger className="grid gap-5 sm:grid-cols-2">

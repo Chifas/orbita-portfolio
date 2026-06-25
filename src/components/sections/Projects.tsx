@@ -9,7 +9,7 @@ export function Projects() {
       <SectionHeading
         eyebrow="03 · Proyectos"
         title="Mundos que he construido"
-        intro="Una selección de proyectos. Cada uno, un planeta con su propia historia."
+        intro="Cosas que he construido: algunas en producción, otras por pura curiosidad de fin de semana."
       />
 
       <Reveal stagger className="grid gap-5 sm:grid-cols-2">
