@@ -13,6 +13,7 @@ import { Stack } from "@/components/sections/Stack";
 import { Marquee } from "@/components/Marquee";
 import { Projects } from "@/components/sections/Projects";
 import { Experience } from "@/components/sections/Experience";
+import { Beyond } from "@/components/sections/Beyond";
 import { Contact } from "@/components/sections/Contact";
 import { Footer } from "@/components/Footer";
 
@@ -37,6 +38,7 @@ export default function Home() {
         <Marquee />
         <Projects />
         <Experience />
+        <Beyond />
         <Contact />
       </main>
 

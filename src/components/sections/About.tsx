@@ -1,6 +1,13 @@
+import Image from "next/image";
 import { SectionHeading } from "../SectionHeading";
 import { Reveal } from "../Reveal";
 import { about, site } from "@/config/site";
+
+const initials = site.name
+  .split(" ")
+  .map((w) => w[0])
+  .slice(0, 2)
+  .join("");
 
 export function About() {
   return (
@@ -12,13 +19,37 @@ export function About() {
           {about.map((paragraph, i) => (
             <p key={i}>{paragraph}</p>
           ))}
+          <p className="border-l-2 border-plasma/60 pl-4 text-base italic text-star/90">
+            “{site.quote}”
+          </p>
         </Reveal>
 
         <Reveal className="surface h-fit rounded-2xl p-6">
-          <dl className="space-y-4 text-sm">
+          {/* Avatar (foto si existe; si no, iniciales) */}
+          <div className="mb-6 flex items-center gap-4">
+            {site.photo ? (
+              <Image
+                src={site.photo}
+                alt={site.name}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-plasma/40"
+              />
+            ) : (
+              <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-nebula to-plasma font-display text-xl font-bold text-void">
+                {initials}
+              </span>
+            )}
+            <div>
+              <p className="font-display font-semibold text-star">{site.name}</p>
+              <p className="text-sm text-star-dim">{site.role}</p>
+            </div>
+          </div>
+
+          <dl className="space-y-4 border-t border-white/10 pt-5 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-star-dim">Ubicación</dt>
-              <dd className="font-medium text-star">{site.location}</dd>
+              <dd className="text-right font-medium text-star">{site.location}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-star-dim">Rol</dt>

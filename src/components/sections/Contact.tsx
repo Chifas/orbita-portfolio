@@ -17,7 +17,7 @@ export function Contact() {
         />
 
         <div className="relative">
-          <p className="eyebrow mb-5">05 · Contacto</p>
+          <p className="eyebrow mb-5">06 · Contacto</p>
           <h2 className="mx-auto max-w-2xl text-balance text-3xl font-bold sm:text-5xl">
             ¿Construimos algo que <span className="text-gradient">orbite</span> alto?
           </h2>

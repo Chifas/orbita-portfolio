@@ -18,12 +18,26 @@ export const site = {
   location: "Bilbao, Bizkaia, España",
   /** Email de contacto. */
   email: "ekainberna58@gmail.com",
+  /** Foto de perfil. Guarda tu imagen en public/images/ y pon aquí la ruta. "" = avatar con iniciales. */
+  photo: "", // 👈 EDITA: pon "/images/ekain.jpg" cuando subas tu foto
+  /** Frase/manía personal (guiño en "Sobre mí"). */
+  quote: "Si me obsesiono con algo, no paro hasta conseguirlo.",
 } as const;
 
 /** Bio / sección "Sobre mí". Cada string es un párrafo. */
 export const about: string[] = [
-  "Soy Ekain, de Bilbao. Llevo años metido en sistemas empresariales y ERP, pero si algo me define es que no sé estarme quieto: siempre ando trasteando con alguna tecnología nueva.",
-  "De día trabajo con Delphi y bases de datos; al salir me lío con React, Three.js, IA con Claude y automatizaciones varias. Me obsesiona el detalle y dejar el código de forma que mañana —otro, o yo mismo— lo entienda a la primera.",
+  "Soy Ekain, de Bilbao. No te sabría decir por qué me enganché a programar… pero lo que más disfruto es justo lo que hago ahora: aprender e innovar, con la mente siempre en marcha.",
+  "De día trabajo con Delphi y bases de datos; al salir me lío con React, Three.js, IA con Claude y automatizaciones. Cuido el detalle y dejo el código de forma que mañana —otro, o yo mismo— lo entienda a la primera.",
+];
+
+/** Cosas que hago cuando no programo. */
+export const hobbies: { emoji: string; label: string }[] = [
+  { emoji: "📚", label: "Seguir aprendiendo" },
+  { emoji: "🦁", label: "El Athletic" },
+  { emoji: "🎧", label: "Música" },
+  { emoji: "🎮", label: "Gaming" },
+  { emoji: "🍳", label: "Cocinar" },
+  { emoji: "✈️", label: "Viajar" },
 ];
 
 /** Constelación de habilidades (stack). */
@@ -141,7 +155,7 @@ export const socials: { label: string; href: string }[] = [
   { label: "GitHub", href: "https://github.com/Chifas" },
   {
     label: "LinkedIn",
-    href: "https://www.linkedin.com/in/ekain-bernabe-belaustegui-a82a35252/",
+    href: "https://www.linkedin.com/in/ekainbernabe/",
   },
   { label: "Email", href: `mailto:${site.email}` },
 ];
@@ -153,5 +167,6 @@ export const navLinks: { label: string; href: string }[] = [
   { label: "Stack", href: "#stack" },
   { label: "Proyectos", href: "#proyectos" },
   { label: "Trayectoria", href: "#trayectoria" },
+  { label: "Más", href: "#mas" },
   { label: "Contacto", href: "#contacto" },
 ];
